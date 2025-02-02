@@ -30,32 +30,54 @@
         {
             button1 = new Button();
             label1 = new Label();
+            button2 = new Button();
+            richTextBox1 = new RichTextBox();
             SuspendLayout();
             // 
             // button1
             // 
-            button1.Location = new Point(252, 295);
+            button1.Location = new Point(648, 386);
             button1.Name = "button1";
-            button1.Size = new Size(325, 29);
+            button1.Size = new Size(140, 52);
             button1.TabIndex = 0;
-            button1.Text = "button1";
+            button1.Text = "AddMatches";
             button1.UseVisualStyleBackColor = true;
             button1.Click += button1_Click;
             // 
             // label1
             // 
             label1.AutoSize = true;
-            label1.Location = new Point(382, 195);
+            label1.Location = new Point(700, 352);
             label1.Name = "label1";
             label1.Size = new Size(50, 20);
             label1.TabIndex = 1;
             label1.Text = "label1";
+            // 
+            // button2
+            // 
+            button2.Location = new Point(317, 337);
+            button2.Name = "button2";
+            button2.Size = new Size(143, 64);
+            button2.TabIndex = 2;
+            button2.Text = "button2";
+            button2.UseVisualStyleBackColor = true;
+            button2.Click += button2_Click;
+            // 
+            // richTextBox1
+            // 
+            richTextBox1.Location = new Point(15, 8);
+            richTextBox1.Name = "richTextBox1";
+            richTextBox1.Size = new Size(773, 323);
+            richTextBox1.TabIndex = 3;
+            richTextBox1.Text = "";
             // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(8F, 20F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(800, 450);
+            Controls.Add(richTextBox1);
+            Controls.Add(button2);
             Controls.Add(label1);
             Controls.Add(button1);
             Name = "Form1";
@@ -68,5 +90,7 @@
 
         private Button button1;
         private Label label1;
+        private Button button2;
+        private RichTextBox richTextBox1;
     }
 }
