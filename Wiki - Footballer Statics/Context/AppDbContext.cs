@@ -19,8 +19,14 @@ namespace Wiki___Footballer_Statics.Context
         }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            modelBuilder.Entity<MatchLineUp>().HasKey(x=>new { x.MatchId, x.PlayerId,x.TeamId });
+            modelBuilder.Entity<MatchLineUp>()
+                .HasKey(x=>new { x.MatchId, x.PlayerId});
 
-        }
+     
+            ;
+
+           
+
+;        }
     }
 }
