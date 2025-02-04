@@ -32,6 +32,10 @@
             label1 = new Label();
             button2 = new Button();
             richTextBox1 = new RichTextBox();
+            comboBox1 = new ComboBox();
+            textBox1 = new TextBox();
+            label2 = new Label();
+            checkBox1 = new CheckBox();
             SuspendLayout();
             // 
             // button1
@@ -71,17 +75,56 @@
             richTextBox1.TabIndex = 3;
             richTextBox1.Text = "";
             // 
+            // comboBox1
+            // 
+            comboBox1.FormattingEnabled = true;
+            comboBox1.Location = new Point(637, 466);
+            comboBox1.Name = "comboBox1";
+            comboBox1.Size = new Size(151, 28);
+            comboBox1.TabIndex = 4;
+            // 
+            // textBox1
+            // 
+            textBox1.Location = new Point(506, 466);
+            textBox1.Name = "textBox1";
+            textBox1.Size = new Size(125, 27);
+            textBox1.TabIndex = 5;
+            // 
+            // label2
+            // 
+            label2.AutoSize = true;
+            label2.Location = new Point(544, 443);
+            label2.Name = "label2";
+            label2.Size = new Size(61, 20);
+            label2.TabIndex = 6;
+            label2.Text = "Text adı";
+            // 
+            // checkBox1
+            // 
+            checkBox1.AutoSize = true;
+            checkBox1.Location = new Point(417, 468);
+            checkBox1.Name = "checkBox1";
+            checkBox1.Size = new Size(83, 24);
+            checkBox1.TabIndex = 7;
+            checkBox1.Text = "Tamamı";
+            checkBox1.UseVisualStyleBackColor = true;
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(8F, 20F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(800, 450);
+            ClientSize = new Size(800, 651);
+            Controls.Add(checkBox1);
+            Controls.Add(label2);
+            Controls.Add(textBox1);
+            Controls.Add(comboBox1);
             Controls.Add(richTextBox1);
             Controls.Add(button2);
             Controls.Add(label1);
             Controls.Add(button1);
             Name = "Form1";
             Text = "Form1";
+            Load += Form1_Load;
             ResumeLayout(false);
             PerformLayout();
         }
@@ -92,5 +135,9 @@
         private Label label1;
         private Button button2;
         private RichTextBox richTextBox1;
+        private ComboBox comboBox1;
+        private TextBox textBox1;
+        private Label label2;
+        private CheckBox checkBox1;
     }
 }

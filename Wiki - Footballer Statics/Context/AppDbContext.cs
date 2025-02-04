@@ -14,6 +14,7 @@ namespace Wiki___Footballer_Statics.Context
         public DbSet<Match> Matches { get; set; }
         public DbSet<MatchEvent> MatchEvents { get; set; }
         public DbSet<MatchLineUp> MatchLineUps { get; set; }
+        public DbSet<Competition> Competitions { get; set; }
         public DbSet<PlayerStatisticsView> PlayerStatisticsView { get; set; }
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {

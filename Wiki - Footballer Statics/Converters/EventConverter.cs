@@ -15,7 +15,10 @@ namespace Wiki___Footballer_Statics.Converters
     {
         public override MatchEvent? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
+            try
+            {
 
+            
             using (JsonDocument document = JsonDocument.ParseValue(ref reader))
             {
                 var root = document.RootElement;
@@ -89,6 +92,12 @@ namespace Wiki___Footballer_Statics.Converters
                 }
 
                 return mE;
+            }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+                throw;
             }
         }
 

@@ -14,6 +14,8 @@ namespace Wiki___Footballer_Statics.Classes
         public string AwayTeam { get; set; }
         public string HalfTime { get; set; }
         public string MatchResult { get; set; }
+        public int CompetitionId { get; set; }
+        public Competition Competition { get; set; }
         public IList<MatchEvent> MatchEvents { get; set; }
         public IList<MatchLineUp> HomeLineUp { get; set; }
     }

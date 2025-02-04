@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Wiki___Footballer_Statics.Context;
 
@@ -10,9 +11,11 @@ using Wiki___Footballer_Statics.Context;
 namespace Wiki___Footballer_Statics.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250204202507_mig0402252325")]
+    partial class mig0402252325
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -77,8 +80,6 @@ namespace Wiki___Footballer_Statics.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("CompetitionId");
 
                     b.ToTable("Matches");
                 });
@@ -190,17 +191,6 @@ namespace Wiki___Footballer_Statics.Migrations
                     b.ToView("PlayerStatistics", (string)null);
                 });
 
-            modelBuilder.Entity("Wiki___Footballer_Statics.Classes.Match", b =>
-                {
-                    b.HasOne("Wiki___Footballer_Statics.Classes.Competition", "Competition")
-                        .WithMany("Matches")
-                        .HasForeignKey("CompetitionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Competition");
-                });
-
             modelBuilder.Entity("Wiki___Footballer_Statics.Classes.MatchEvent", b =>
                 {
                     b.HasOne("Wiki___Footballer_Statics.Classes.Match", "Match")
@@ -221,11 +211,6 @@ namespace Wiki___Footballer_Statics.Migrations
                         .IsRequired();
 
                     b.Navigation("Match");
-                });
-
-            modelBuilder.Entity("Wiki___Footballer_Statics.Classes.Competition", b =>
-                {
-                    b.Navigation("Matches");
                 });
 
             modelBuilder.Entity("Wiki___Footballer_Statics.Classes.Match", b =>
