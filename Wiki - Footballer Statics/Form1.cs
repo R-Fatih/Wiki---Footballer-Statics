@@ -4,6 +4,7 @@ using Wiki___Footballer_Statics.Classes;
 using Wiki___Footballer_Statics.Context;
 using Wiki___Footballer_Statics.Services.Concrete;
 using Microsoft.EntityFrameworkCore;
+using Wiki___Footballer_Statics.ExternalClasses;
 namespace Wiki___Footballer_Statics
 {
     public partial class Form1 : Form
@@ -32,7 +33,7 @@ namespace Wiki___Footballer_Statics
                     label1.Text = i.ToString();
                     var mId = strings[i].Split(',')[1]; ;
                     var match = await MatchService.GetMatch(mId);
-                    var match2 = new Match
+                    var match2 = new Classes.Match
                     {
                         AwayTeam = match.away,
                         HomeTeam = match.home,
@@ -64,7 +65,7 @@ namespace Wiki___Footballer_Statics
 
                     }).ToList();
 
-                    var events = match.e.Select(x => new MatchEvent
+                    var events = match.e.Select(x => new Classes.MatchEvent
                     {
                         EventDetail = x.EventDetail,
                         FirstActorPlayerId = x.FirstActorPlayerId,
@@ -80,40 +81,101 @@ namespace Wiki___Footballer_Statics
             MessageBox.Show(result.ToString());
         }
         private readonly AppDbContext _context = new AppDbContext();
-        private void button2_Click(object sender, EventArgs e)
+        private async void button2_Click(object sender, EventArgs e)
         {
-            var playedMatches = _context.MatchLineUps
+            var idOfPlayers =await  _context.MatchLineUps.Select(x => x.PlayerId).Distinct().ToListAsync();
+           
+                var playerDetails = await WikiDataService.GetPlayerDetails(idOfPlayers.ToArray());
+
+            var combinedPlayerDetails = new WikiDataResponse
+            {
+                head = playerDetails.First().head,
+                results = new Results
+                {
+                    bindings = playerDetails.SelectMany(pd => pd.results.bindings).ToArray()
+                }
+            };
+            // Combine the results from all chunks
+
+
+            var playedMatches = await _context.MatchLineUps
       .Include(y => y.Match)
       .ThenInclude(m => m.MatchEvents)
-      .Where(x => x.IsFirstEleven || x.IsSubtituted)
       .GroupBy(x => new { x.PlayerId, x.Team })
-        .ToList()
-      .Select(y => new
-      {
-          Team = y.Key.Team,
-          PlayerId = y.Key.PlayerId,
-          Played = y.Count(),
-          FirstEleven = y.Count(x => x.IsFirstEleven),
-          PlayedMinute = y.Sum(x => x.PlayedMinute),
-          Number= y.FirstOrDefault().Number,
+        .ToListAsync();
+     var playedMatches2=playedMatches.Select(y =>
+     {
+         return new
+         {
+             Team = y.Key.Team,
+             PlayerId = y.Key.PlayerId,
+             Played = y.Count(x=>x.IsFirstEleven||x.IsSubtituted),
+             FirstEleven = y.Count(x => x.IsFirstEleven),
+             PlayedMinute = y.Sum(x => x.PlayedMinute),
+             Number = y.FirstOrDefault()?.Number,
+             PlayerName = "[[" + combinedPlayerDetails?.results?.bindings?.FirstOrDefault(x =>
+             x.id != null &&
+             Convert.ToInt32(x.id.value) == y.Key.PlayerId
+         )?.formattedName?.value + "]]" ?? "",
+             Nation = combinedPlayerDetails?.results?.bindings?.FirstOrDefault(x =>
+             x.id != null &&
+             Convert.ToInt32(x.id.value) == y.Key.PlayerId
+         )?.nationLabel?.value ?? "",
+             Position = combinedPlayerDetails?.results?.bindings?.FirstOrDefault(x =>
+             x.id != null &&
+             Convert.ToInt32(x.id.value) == y.Key.PlayerId
+         )?.positionLabel?.value ?? "",
+             Birth = $"{{{{Yaþ|{(combinedPlayerDetails?.results?.bindings?.FirstOrDefault(x =>
+             x.id != null &&
+             Convert.ToInt32(x.id.value) == y.Key.PlayerId
+         )?.birthDate?.value.ToString("yyyy|MM|dd") ?? "")}}}}}",
+             Goals = y.Sum(x => x.Match.MatchEvents.Count(z =>
+                 (z.EventDetail == Enums.EventDetail.Goal || z.EventDetail == Enums.EventDetail.Penalty) &&
+                 z.FirstActorPlayerId == x.PlayerId &&
+                 z.Team == y.Key.Team)),
+             Penalties = y.Sum(x => x.Match.MatchEvents.Count(z =>
+                 z.EventDetail == Enums.EventDetail.Penalty &&
+                 z.FirstActorPlayerId == x.PlayerId &&
+                 z.Team == y.Key.Team)),
+             YellowCards = y.Sum(x => x.Match.MatchEvents.Count(z =>
+                 z.EventDetail == Enums.EventDetail.YellowCard &&
+                 z.FirstActorPlayerId == x.PlayerId &&
+                 z.Team == y.Key.Team)),
+             YellowAndRedCards = y.Sum(x => x.Match.MatchEvents.Count(z =>
+                 z.EventDetail == Enums.EventDetail.SecondYellowRedCard &&
+                 z.FirstActorPlayerId == x.PlayerId &&
+                 z.Team == y.Key.Team)),
+             RedCards = y.Sum(x => x.Match.MatchEvents.Count(z =>
+                 z.EventDetail == Enums.EventDetail.DirectRedCard &&
+                 z.FirstActorPlayerId == x.PlayerId &&
+                 z.Team == y.Key.Team)),
+             Assist = y.Sum(x => x.Match.MatchEvents.Count(z =>
+                 z.EventDetail == Enums.EventDetail.Goal &&
+                 z.SecondActorPlayerId == x.PlayerId &&
+                 z.Team == y.Key.Team)),
+             MissedPenalties = y.Sum(x => x.Match.MatchEvents.Count(z =>
+                 z.EventDetail == Enums.EventDetail.MissedPenalty &&
+                 z.FirstActorPlayerId == x.PlayerId &&
+                 z.Team == y.Key.Team))
+         };
+     })
+.OrderBy(x => x.Team)
+.ThenBy(x => x.Number)
+.ThenBy(y => y.PlayerId)
+.ToList();
 
-          Goals = y.Sum(x => x.Match.MatchEvents.Count(z => (z.EventDetail == Enums.EventDetail.Goal || z.EventDetail == Enums.EventDetail.Penalty) && z.FirstActorPlayerId == x.PlayerId && z.Team == y.Key.Team)),
-          Penalties = y.Sum(x => x.Match.MatchEvents.Count(z => z.EventDetail == Enums.EventDetail.Penalty && z.FirstActorPlayerId == x.PlayerId && z.Team == y.Key.Team)),
-          YellowCards = y.Sum(x => x.Match.MatchEvents.Count(z => z.EventDetail == Enums.EventDetail.YellowCard && z.FirstActorPlayerId == x.PlayerId && z.Team == y.Key.Team)),
-          YellowAndRedCards = y.Sum(x => x.Match.MatchEvents.Count(z => z.EventDetail == Enums.EventDetail.SecondYellowRedCard && z.FirstActorPlayerId == x.PlayerId && z.Team == y.Key.Team)),
-          RedCards = y.Sum(x => x.Match.MatchEvents.Count(z => z.EventDetail == Enums.EventDetail.DirectRedCard && z.FirstActorPlayerId == x.PlayerId && z.Team == y.Key.Team)),
-          Assist = y.Sum(x => x.Match.MatchEvents.Count(z => z.EventDetail == Enums.EventDetail.Goal && z.SecondActorPlayerId == x.PlayerId && z.Team == y.Key.Team))
-          ,MissedPenalties= y.Sum(x => x.Match.MatchEvents.Count(z => z.EventDetail == Enums.EventDetail.MissedPenalty && z.FirstActorPlayerId == x.PlayerId && z.Team == y.Key.Team))
-      })
-      .OrderBy(x => x.Team).ThenBy(x=>x.Number).ThenBy(y=>y.PlayerId)
-      .ToList();
 
+            ;
             richTextBox1.Text += "{{#switch:{{{1}}}";
-            playedMatches.ForEach(x =>
+            playedMatches2.ForEach(x =>
             {
                 richTextBox1.Text += $"|{x.Team}-{x.PlayerId}={{{{#switch:{{{{{{2}}}}}}\n" +
                 $"|Id={x.PlayerId}\n" +
                 $"|Takým={x.Team}\n" +
+                $"|Ýsim={x.PlayerName}\n" +
+                $"|Pozisyon={x.Position}\n" +
+                $"|Milliyet={x.Nation}\n" +
+                $"|Yaþ={x.Birth}\n" +
                 $"|Numara={x.Number}\n" +
                 $"|OynadýðýMaç={x.Played}\n" +
                 $"|Goller={x.Goals}\n" +
