@@ -36,6 +36,7 @@
             textBox1 = new TextBox();
             label2 = new Label();
             checkBox1 = new CheckBox();
+            richTextBox2 = new RichTextBox();
             SuspendLayout();
             // 
             // button1
@@ -109,11 +110,20 @@
             checkBox1.Text = "Tamamı";
             checkBox1.UseVisualStyleBackColor = true;
             // 
+            // richTextBox2
+            // 
+            richTextBox2.Location = new Point(15, 375);
+            richTextBox2.Name = "richTextBox2";
+            richTextBox2.Size = new Size(241, 202);
+            richTextBox2.TabIndex = 8;
+            richTextBox2.Text = "";
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(8F, 20F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(800, 651);
+            Controls.Add(richTextBox2);
             Controls.Add(checkBox1);
             Controls.Add(label2);
             Controls.Add(textBox1);
@@ -139,5 +149,6 @@
         private TextBox textBox1;
         private Label label2;
         private CheckBox checkBox1;
+        private RichTextBox richTextBox2;
     }
 }

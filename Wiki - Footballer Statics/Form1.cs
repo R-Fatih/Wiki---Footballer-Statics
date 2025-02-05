@@ -5,6 +5,7 @@ using Wiki___Footballer_Statics.Context;
 using Wiki___Footballer_Statics.Services.Concrete;
 using Microsoft.EntityFrameworkCore;
 using Wiki___Footballer_Statics.ExternalClasses;
+using System.Linq;
 namespace Wiki___Footballer_Statics
 {
     public partial class Form1 : Form
@@ -105,7 +106,7 @@ namespace Wiki___Footballer_Statics
         private readonly AppDbContext _context = new AppDbContext();
         private async void button2_Click(object sender, EventArgs e)
         {
-            var idOfPlayers = await _context.MatchLineUps.Select(x => x.PlayerId).Distinct().ToListAsync();
+            var idOfPlayers = await _context.MatchLineUps.Include(y => y.Match).Where(z => z.Match.CompetitionId == 1).Select(x => x.PlayerId).Distinct().ToListAsync();
 
             var playerDetails = await WikiDataService.GetPlayerDetails(idOfPlayers.ToArray());
 
@@ -119,13 +120,28 @@ namespace Wiki___Footballer_Statics
             };
             // Combine the results from all chunks
 
+            var teamsDemanded =await _context.Matches.Where(x=>x.CompetitionId==1).Select(x=>x.HomeTeam).Distinct().ToListAsync();
 
+
+            var playerIdsInDetails = combinedPlayerDetails.results.bindings
+                .Select(b => Convert.ToInt32(b.id.value))
+                .ToHashSet();
+
+            var missingPlayerIds = idOfPlayers
+                .Where(playerId => !playerIdsInDetails.Contains(playerId))
+                .ToList();
+
+            missingPlayerIds.ForEach(x=>richTextBox2.Text += x.ToString() + "\n");
             var playedMatches = await _context.MatchLineUps
       .Include(y => y.Match)
+      
       .ThenInclude(m => m.MatchEvents)
-      .GroupBy(x => new { x.PlayerId, x.Team })
+     .Include(y=>y.Match.Competition)
+    .Where(x => teamsDemanded.Contains(x.Match.HomeTeam) || teamsDemanded.Contains(x.Match.AwayTeam))
+
+      .GroupBy(x => new { x.PlayerId, x.Team,x.Match.CompetitionId })
         .ToListAsync();
-            var playedMatches2 = playedMatches.Select(y =>
+            var playedMatches2 = playedMatches.Where(x=>teamsDemanded.Contains(x.Key.Team)).Select(y =>
             {
                 return new
                 {
@@ -133,24 +149,25 @@ namespace Wiki___Footballer_Statics
                     PlayerId = y.Key.PlayerId,
                     Played = y.Count(x => x.IsFirstEleven || x.IsSubtituted),
                     FirstEleven = y.Count(x => x.IsFirstEleven),
+                    Competition = y.Key.CompetitionId,
                     PlayedMinute = y.Sum(x => x.PlayedMinute),
                     Number = y.FirstOrDefault()?.Number,
                     PlayerName = "[[" + combinedPlayerDetails?.results?.bindings?.FirstOrDefault(x =>
                     x.id != null &&
                     Convert.ToInt32(x.id.value) == y.Key.PlayerId
-                )?.formattedName?.value + "]]" ?? "",
+                )?.formattedName?.value + "]]" ?? "-",
                     Nation = combinedPlayerDetails?.results?.bindings?.FirstOrDefault(x =>
                     x.id != null &&
                     Convert.ToInt32(x.id.value) == y.Key.PlayerId
-                )?.nationLabel?.value ?? "",
+                )?.nationLabel?.value ?? "-",
                     Position = combinedPlayerDetails?.results?.bindings?.FirstOrDefault(x =>
                     x.id != null &&
                     Convert.ToInt32(x.id.value) == y.Key.PlayerId
-                )?.positionLabel?.value ?? "",
+                )?.positionLabel?.value ?? "-",
                     Birth = $"{{{{Yaþ|{(combinedPlayerDetails?.results?.bindings?.FirstOrDefault(x =>
                     x.id != null &&
                     Convert.ToInt32(x.id.value) == y.Key.PlayerId
-                )?.birthDate?.value.ToString("yyyy|MM|dd") ?? "")}}}}}",
+                )?.birthDate?.value.ToString("yyyy|MM|dd") ?? "-")}}}}}",
                     Goals = y.Sum(x => x.Match.MatchEvents.Count(z =>
                         (z.EventDetail == Enums.EventDetail.Goal || z.EventDetail == Enums.EventDetail.Penalty) &&
                         z.FirstActorPlayerId == x.PlayerId &&
@@ -189,11 +206,13 @@ namespace Wiki___Footballer_Statics
 
             ;
             richTextBox1.Text += "{{#switch:{{{1}}}";
-            playedMatches2.ForEach(x =>
+            playedMatches2.ForEach(async x =>
             {
+                var competition = await _context.Competitions.FindAsync(x.Competition);
                 richTextBox1.Text += $"|{x.Team}-{x.PlayerId}={{{{#switch:{{{{{{2}}}}}}\n" +
                 $"|Id={x.PlayerId}\n" +
                 $"|Takým={x.Team}\n" +
+                $"|Lig=[[{ competition.FullSeasonName}|{competition.Name}]]\n" +
                 $"|Ýsim={x.PlayerName}\n" +
                 $"|Pozisyon={x.Position}\n" +
                 $"|Milliyet={x.Nation}\n" +
