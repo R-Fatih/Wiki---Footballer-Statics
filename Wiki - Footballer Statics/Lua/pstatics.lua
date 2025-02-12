@@ -11,8 +11,9 @@ function p.teamPS(frame)
     local pattern = "|Id%s*=%s*(%d+)%s*\n" ..
                 "|Takım%s*=%s*([^\n|]*)%s*\n" ..
                 "|Lig%s*=%s*([^\n]*)\n"..
+                "|Mevcut%s*=%s*([^\n]*)\n"..
                 "|İsim%s*=%s*([^\n]*)\n" ..
-                "|Pozisyon%s*=%s*([^\n|]*)%s*\n" ..
+                "|Pozisyon%s*=%s*([^\n]*)\n" ..
                 "|Milliyet%s*=%s*([^\n|]*)%s*\n" ..
                 "|Yaş%s*=%s*([^\n]*)\n" ..
                 "|Numara%s*=%s*(%d+)%s*\n" ..
@@ -34,12 +35,12 @@ function p.teamPS(frame)
     local columnHeader = '!width=50 style="border-right:3px solid grey;" colspan="8"|%s'
     local statsHeader = '![[File:Jersey white.svg|19px]]!!{{gol}}!!{{penaltı}}!!{{kaçan penaltı}}!!{{altın gol}}!!{{sarı kart}}!!{{kırmızı kart|1}}!!style="border-right:3px solid grey;"|{{kırmızı kart}}'
 
-
     local result = {tableHeader}
     local teamLeagues = {}
     local leaguesSeen = {}
     local playerStats = {}
     local sortedPlayers = {}
+    local departedPlayers = {}
     
     -- First, collect all leagues for the team
     for id, team, league in mw.ustring.gmatch(content, "|Id%s*=%s*(%d+)%s*\n|Takım%s*=%s*([^\n|]*)%s*\n|Lig%s*=%s*([^\n]*)\n") do
@@ -50,13 +51,17 @@ function p.teamPS(frame)
     end
 
     -- Collect player stats for each league
-    for id, team, league, name, pos, nation, age, number, match, goals, penalties, mpenalties, assists, yellowcards, yellowredcards, redcards, minutes, firsteleven in mw.ustring.gmatch(content, pattern) do
+    for id, team, league, exist, name, pos, nation, age, number, match, goals, penalties, mpenalties, assists, yellowcards, yellowredcards, redcards, minutes, firsteleven in mw.ustring.gmatch(content, pattern) do
         if team == selectedTeam then
-            if not playerStats[name] then
-                playerStats[name] = {
+            local playerTable = exist == "True" and sortedPlayers or departedPlayers
+            local statsTable = playerStats
+            
+            if not statsTable[name] then
+                statsTable[name] = {
                     number = tonumber(number),
                     pos = pos,
                     nation = nation,
+                    exist = exist,
                     leagues = {},
                     totals = {
                         match = 0,
@@ -69,9 +74,10 @@ function p.teamPS(frame)
                         redcards = 0
                     }
                 }
-                table.insert(sortedPlayers, name)
+                table.insert(playerTable, name)
             end
-            playerStats[name].leagues[league] = {
+            
+            statsTable[name].leagues[league] = {
                 match = tonumber(match),
                 goals = tonumber(goals),
                 penalties = tonumber(penalties),
@@ -81,22 +87,26 @@ function p.teamPS(frame)
                 yellowredcards = tonumber(yellowredcards),
                 redcards = tonumber(redcards)
             }
+            
             -- Update totals
-            playerStats[name].totals.match = playerStats[name].totals.match + tonumber(match)
-            playerStats[name].totals.goals = playerStats[name].totals.goals + tonumber(goals)
-            playerStats[name].totals.penalties = playerStats[name].totals.penalties + tonumber(penalties)
-            playerStats[name].totals.mpenalties = playerStats[name].totals.mpenalties + tonumber(mpenalties)
-            playerStats[name].totals.assists = playerStats[name].totals.assists + tonumber(assists)
-            playerStats[name].totals.yellowcards = playerStats[name].totals.yellowcards + tonumber(yellowcards)
-            playerStats[name].totals.yellowredcards = playerStats[name].totals.yellowredcards + tonumber(yellowredcards)
-            playerStats[name].totals.redcards = playerStats[name].totals.redcards + tonumber(redcards)
+            statsTable[name].totals.match = statsTable[name].totals.match + tonumber(match)
+            statsTable[name].totals.goals = statsTable[name].totals.goals + tonumber(goals)
+            statsTable[name].totals.penalties = statsTable[name].totals.penalties + tonumber(penalties)
+            statsTable[name].totals.mpenalties = statsTable[name].totals.mpenalties + tonumber(mpenalties)
+            statsTable[name].totals.assists = statsTable[name].totals.assists + tonumber(assists)
+            statsTable[name].totals.yellowcards = statsTable[name].totals.yellowcards + tonumber(yellowcards)
+            statsTable[name].totals.yellowredcards = statsTable[name].totals.yellowredcards + tonumber(yellowredcards)
+            statsTable[name].totals.redcards = statsTable[name].totals.redcards + tonumber(redcards)
         end
     end
 
     -- Sort players by number
-    table.sort(sortedPlayers, function(a, b)
+    local function sortByNumber(a, b)
         return playerStats[a].number < playerStats[b].number
-    end)
+    end
+    
+    table.sort(sortedPlayers, sortByNumber)
+    table.sort(departedPlayers, sortByNumber)
 
     if #teamLeagues > 0 then
         -- Add headers for each league
@@ -115,32 +125,44 @@ function p.teamPS(frame)
         
         table.insert(result, "|-")
         
-        -- Output player stats for each league and totals
-        for _, name in ipairs(sortedPlayers) do
-            local player = playerStats[name]
-            local row = string.format("||%s||%s||{{bayraksimge|%s}}|| align=left|%s",
-                player.number, player.pos, player.nation, name)
-            
-            -- Add stats for each league
-            for _, league in ipairs(teamLeagues) do
-                local leagueStats = player.leagues[league] or {
-                    match = 0, goals = 0, penalties = 0, mpenalties = 0,
-                    assists = 0, yellowcards = 0, yellowredcards = 0, redcards = 0
-                }
+        -- Function to add player rows
+        local function addPlayerRows(players)
+            for _, name in ipairs(players) do
+                local player = playerStats[name]
+                local row = string.format("||%s||%s||{{bayraksimge|%s}}|| align=left|%s",
+                    player.number, player.pos, player.nation, name)
                 
-                row = row .. string.format("||%s||%s||%s||%s||%s||%s||%s||style='border-right:3px solid grey;'|%s",
-                    leagueStats.match, leagueStats.goals, leagueStats.penalties,
-                    leagueStats.mpenalties, leagueStats.assists, leagueStats.yellowcards,
-                    leagueStats.yellowredcards, leagueStats.redcards)
-            end
+                -- Add stats for each league
+                for _, league in ipairs(teamLeagues) do
+                    local leagueStats = player.leagues[league] or {
+                        match = 0, goals = 0, penalties = 0, mpenalties = 0,
+                        assists = 0, yellowcards = 0, yellowredcards = 0, redcards = 0
+                    }
+                    
+                    row = row .. string.format("||%s||%s||%s||%s||%s||%s||%s||style='border-right:3px solid grey;'|%s",
+                        leagueStats.match, leagueStats.goals, leagueStats.penalties,
+                        leagueStats.mpenalties, leagueStats.assists, leagueStats.yellowcards,
+                        leagueStats.yellowredcards, leagueStats.redcards)
+                end
 
-            -- Add total stats
-            row = row .. string.format("||%s||%s||%s||%s||%s||%s||%s||style='border-right:3px solid grey;'|%s",
-                player.totals.match, player.totals.goals, player.totals.penalties,
-                player.totals.mpenalties, player.totals.assists, player.totals.yellowcards,
-                player.totals.yellowredcards, player.totals.redcards)
-            
-            table.insert(result, row .. "\n|-")
+                -- Add total stats
+                row = row .. string.format("||%s||%s||%s||%s||%s||%s||%s||style='border-right:3px solid grey;'|%s",
+                    player.totals.match, player.totals.goals, player.totals.penalties,
+                    player.totals.mpenalties, player.totals.assists, player.totals.yellowcards,
+                    player.totals.yellowredcards, player.totals.redcards)
+                
+                table.insert(result, row .. "\n|-")
+            end
+        end
+        
+        -- Add current players
+        addPlayerRows(sortedPlayers)
+        
+        -- Add departed players section if any exist
+        if #departedPlayers > 0 then
+            local colspan = 4 + (#teamLeagues + 1) * 8
+            table.insert(result, string.format("!colspan='%d'|'''Ayrılan oyuncular'''\n|-", colspan))
+            addPlayerRows(departedPlayers)
         end
     else
         return "Error: Selected team not found"
