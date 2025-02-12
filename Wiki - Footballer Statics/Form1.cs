@@ -6,6 +6,7 @@ using Wiki___Footballer_Statics.Services.Concrete;
 using Microsoft.EntityFrameworkCore;
 using Wiki___Footballer_Statics.ExternalClasses;
 using System.Linq;
+using Wiki___Footballer_Statics.Helpers;
 namespace Wiki___Footballer_Statics
 {
     public partial class Form1 : Form
@@ -17,21 +18,21 @@ namespace Wiki___Footballer_Statics
         private const string filePath = "D:\\repos\\Wikipedia Maçkolik-TFF Match Scraper\\Wikipedia Maçkolik-TFF Match Scraper\\bin\\Debug\\";
         private async void button1_Click(object sender, EventArgs e)
         {
-            string setting1,setting2,setting3 = "", setting4 = "", setting5="";
+            string setting1, setting2, setting3 = "", setting4 = "", setting5 = "";
             if (!checkBox1.Checked)
             {
                 var parser = new FileIniDataParser();
                 IniData data = parser.ReadFile(filePath + "settings.ini");
 
-                 setting1 = data["Settings"]["VAR"];
-                 setting2 = data["Settings"]["Hafta"];
-                 setting3 = data["Settings"]["Start"];
-                 setting4 = data["Settings"]["Finish"];
-                 setting5 = data["Settings"]["File"];
+                setting1 = data["Settings"]["VAR"];
+                setting2 = data["Settings"]["Hafta"];
+                setting3 = data["Settings"]["Start"];
+                setting4 = data["Settings"]["Finish"];
+                setting5 = data["Settings"]["File"];
             }
             else
             {
-               setting5 = textBox1.Text;
+                setting5 = textBox1.Text;
 
 
             }
@@ -54,7 +55,7 @@ namespace Wiki___Footballer_Statics
 
                     if (match != null)
                     {
-                      
+
 
                         var match2 = new Classes.Match
                         {
@@ -118,9 +119,22 @@ namespace Wiki___Footballer_Statics
                     bindings = playerDetails.SelectMany(pd => pd.results.bindings).ToArray()
                 }
             };
-            // Combine the results from all chunks
 
-            var teamsDemanded =await _context.Matches.Where(x=>x.CompetitionId==1).Select(x=>x.HomeTeam).Distinct().ToListAsync();
+
+            var teamsDemanded = await _context.Matches.Where(x => x.CompetitionId == 1).Select(x => x.HomeTeam).Distinct().ToListAsync();
+
+
+            List<Squad> allSquads = new List<Squad>();
+            foreach (var team in teamsDemanded)
+            {
+                var squad = await SquadService.GetSquad(team);
+                allSquads.Add(squad);
+            }
+
+
+
+
+
 
 
             var playerIdsInDetails = combinedPlayerDetails.results.bindings
@@ -131,21 +145,22 @@ namespace Wiki___Footballer_Statics
                 .Where(playerId => !playerIdsInDetails.Contains(playerId))
                 .ToList();
 
-            missingPlayerIds.ForEach(x=>richTextBox2.Text += x.ToString() + "\n");
+            missingPlayerIds.ForEach(x => richTextBox2.Text += x.ToString() + "\n");
             var playedMatches = await _context.MatchLineUps
       .Include(y => y.Match)
-      
+
       .ThenInclude(m => m.MatchEvents)
-     .Include(y=>y.Match.Competition)
+     .Include(y => y.Match.Competition)
     .Where(x => teamsDemanded.Contains(x.Match.HomeTeam) || teamsDemanded.Contains(x.Match.AwayTeam))
 
-      .GroupBy(x => new { x.PlayerId, x.Team,x.Match.CompetitionId })
+      .GroupBy(x => new { x.PlayerId, x.Team, x.Match.CompetitionId })
         .ToListAsync();
-            var playedMatches2 = playedMatches.Where(x=>teamsDemanded.Contains(x.Key.Team)).Select(y =>
+            var playedMatches2 = playedMatches.Where(x => teamsDemanded.Contains(x.Key.Team)).Select(y =>
             {
                 return new
                 {
                     Team = y.Key.Team,
+                    PlayerExist = SquadService.GetPlayerExistStatus(allSquads, y.Key.PlayerId, y.Key.Team),
                     PlayerId = y.Key.PlayerId,
                     Played = y.Count(x => x.IsFirstEleven || x.IsSubtituted),
                     FirstEleven = y.Count(x => x.IsFirstEleven),
@@ -212,9 +227,10 @@ namespace Wiki___Footballer_Statics
                 richTextBox1.Text += $"|{x.Team}-{x.PlayerId}={{{{#switch:{{{{{{2}}}}}}\n" +
                 $"|Id={x.PlayerId}\n" +
                 $"|Takým={x.Team}\n" +
-                $"|Lig=[[{ competition.FullSeasonName}|{competition.Name}]]\n" +
+                $"|Lig=[[{competition.FullSeasonName}|{competition.Name}]]\n" +
+                $"|Mevcut={x.PlayerExist}\n" +
                 $"|Ýsim={x.PlayerName}\n" +
-                $"|Pozisyon={x.Position}\n" +
+                $"|Pozisyon={PositionReplacer.ReplacePosition(x.Position)}\n" +
                 $"|Milliyet={x.Nation}\n" +
                 $"|Yaþ={x.Birth}\n" +
                 $"|Numara={x.Number}\n" +
@@ -242,7 +258,7 @@ namespace Wiki___Footballer_Statics
 
         private async void Form1_Load(object sender, EventArgs e)
         {
-            var competitions =await  CompetitionService.GetCompetitions();
+            var competitions = await CompetitionService.GetCompetitions();
             comboBox1.DataSource = competitions;
             comboBox1.DisplayMember = "Name";
         }
